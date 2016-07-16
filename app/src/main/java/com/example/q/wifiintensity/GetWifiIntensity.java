@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -27,8 +28,15 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,13 +67,11 @@ public class GetWifiIntensity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case 2: {
                 // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     Button gauge = (Button) findViewById(R.id.gauge);
                     gauge.setOnClickListener(new View.OnClickListener(){
@@ -119,16 +125,69 @@ public class GetWifiIntensity extends AppCompatActivity {
                     obj.put("data", jArray);//배열을 넣음
                     obj.put("zone", Integer.parseInt(placeinfo)); // String to Integer
 
-                    Toast.makeText(GetWifiIntensity.this,obj.toString(),Toast.LENGTH_LONG).show();
+                    new SendMSGTask().execute(obj);
 
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
 
-
-
             }
 
         }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+    }
+
+    public class SendMSGTask extends AsyncTask<JSONObject, Void, Void> {
+
+        String rawURL;
+
+        @Override
+        protected Void doInBackground(JSONObject... params) {
+
+            rawURL = "http://oortcloud.ddns.net:8080";
+            putJSON(params[0]);
+
+            return null;
+        }
+
+        public void putJSON(JSONObject jobj) {
+            OutputStream os = null;
+            InputStream is = null;
+
+            int len = 0;
+            try {
+                len = jobj.toString().getBytes("UTF-8").length;
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                URL url = new URL(rawURL);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setReadTimeout(5000 /* milliseconds */);
+                conn.setConnectTimeout(1000 /* milliseconds */);
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setFixedLengthStreamingMode(len);
+                os = conn.getOutputStream();
+                OutputStreamWriter wrt = new OutputStreamWriter(os, "UTF-8");
+                Log.i("LogCat", "[SEND]ENCODING: " + wrt.getEncoding());
+                Log.i("LogCat", "[SEND]JSON RAW: " + jobj.toString());
+                wrt.write(jobj.toString());
+                wrt.flush();
+                conn.connect();
+                int response = conn.getResponseCode();
+                is = conn.getInputStream();
+                String contentAsString = StreamHelper.readIt(is);
+                Log.i("LogCat", "[SEND]RESPOND : " + contentAsString);
+                os.close();
+                is.close();
+            } catch (MalformedURLException e) {
+                Log.i("LogCat", "[SEND]FAILED TO CONNECT by MalformedURLException");
+            } catch (IOException e) {
+                Log.i("LogCat", "[SEND]FAILED TO CONNECT by IOException");
+                Log.i("LogCat", e.toString());
+            }
+        }
+
     }
 }
