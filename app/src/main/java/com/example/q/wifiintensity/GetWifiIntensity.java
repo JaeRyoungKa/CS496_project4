@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -18,6 +19,16 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +38,8 @@ import java.util.List;
  */
 public class GetWifiIntensity extends AppCompatActivity {
     WifiManager wifi;
-    String info;
+    String placeinfo;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,9 +52,9 @@ public class GetWifiIntensity extends AppCompatActivity {
         ActivityCompat.requestPermissions(GetWifiIntensity.this,new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},2);
 
         Intent intent= new Intent(this.getIntent());
-        info = intent.getStringExtra("place");
+        placeinfo = intent.getStringExtra("place");
         TextView current_session = (TextView) findViewById(R.id.current_session);
-        current_session.setText(info);
+        current_session.setText(placeinfo);
 
     }
 
@@ -92,7 +104,29 @@ public class GetWifiIntensity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
          //       WifiInfo info = wifi.getConnectionInfo();
                 List list = wifi.getScanResults();
-                Toast.makeText(GetWifiIntensity.this,list.get(0).toString(),Toast.LENGTH_LONG).show();
+
+                JSONObject obj = new JSONObject();
+                try {
+                    JSONArray jArray = new JSONArray();//배열이 필요할때
+                    for (int i = 0; i < list.size(); i++)//배열
+                    {
+                        JSONObject sObject = new JSONObject();//배열 내에 들어갈 json
+                        ScanResult temp = (ScanResult) list.get(i);
+                        sObject.put("BSSID", temp.BSSID);
+                        sObject.put("level", temp.level);
+                        jArray.put(sObject);
+                    }
+                    obj.put("data", jArray);//배열을 넣음
+                    obj.put("zone", Integer.parseInt(placeinfo)); // String to Integer
+
+                    Toast.makeText(GetWifiIntensity.this,obj.toString(),Toast.LENGTH_LONG).show();
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+
             }
 
         }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
