@@ -19,4 +19,12 @@
         android:layout_marginTop="10dp"
         android:id="@+id/gauge"
         android:layout_gravity="center_horizontal" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="JSON data will be shown here."
+        android:id="@+id/debug"
+        android:layout_gravity="center" />
 </LinearLayout>

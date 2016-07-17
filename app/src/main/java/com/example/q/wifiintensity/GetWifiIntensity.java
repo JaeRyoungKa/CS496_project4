@@ -25,6 +25,7 @@ import org.apache.http.params.HttpParams;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -125,7 +126,11 @@ public class GetWifiIntensity extends AppCompatActivity {
                     obj.put("data", jArray);//배열을 넣음
                     obj.put("zone", Integer.parseInt(placeinfo)); // String to Integer
 
+                    // 20160717 15:38 for debugging purpose.
                     new SendMSGTask().execute(obj);
+                    TextView debug = (TextView) findViewById(R.id.debug);
+                    debug.setText(obj.toString());
+
 
                 } catch (JSONException e) {
                     e.printStackTrace();
