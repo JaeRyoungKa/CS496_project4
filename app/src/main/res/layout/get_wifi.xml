@@ -21,8 +21,17 @@
         android:layout_gravity="center_horizontal" />
 
     <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:id="@+id/debug_num"
+        android:text="Number of data insertion will be shown here."
+        android:layout_gravity="center" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="JSON data will be shown here."
         android:id="@+id/debug"

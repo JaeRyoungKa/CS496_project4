@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -20,26 +19,18 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.sql.Array;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,6 +38,8 @@ import java.util.List;
  */
 public class GetWifiIntensity extends AppCompatActivity {
     WifiManager wifi;
+    TextView textView_num;
+    int mNumber;
     String placeinfo;
 
     @Override
@@ -65,37 +58,9 @@ public class GetWifiIntensity extends AppCompatActivity {
         TextView current_session = (TextView) findViewById(R.id.current_session);
         current_session.setText(placeinfo);
 
-    }
+        textView_num = (TextView)findViewById(R.id.debug_num);
+        mNumber = 0;
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case 2: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    Button gauge = (Button) findViewById(R.id.gauge);
-                    gauge.setOnClickListener(new View.OnClickListener(){
-                        public void onClick(View v){
-                            Toast.makeText(GetWifiIntensity.this,"접속중입니다.",Toast.LENGTH_SHORT).show();
-                            initializeWiFiListener();
-                        }
-                    });
-
-                } else {
-
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                }
-                return;
-            }
-
-            // other 'case' lines to check for other
-            // permissions this app might request
-        }
-    }
-
-    private void initializeWiFiListener(){
         String connectivity_context = Context.WIFI_SERVICE;
         wifi = (WifiManager)getSystemService(connectivity_context);
 
@@ -104,12 +69,10 @@ public class GetWifiIntensity extends AppCompatActivity {
                 wifi.setWifiEnabled(true);
             }
         }
-        wifi.startScan();
         registerReceiver(new BroadcastReceiver(){
-
             @Override
             public void onReceive(Context context, Intent intent) {
-         //       WifiInfo info = wifi.getConnectionInfo();
+                //       WifiInfo info = wifi.getConnectionInfo();
                 List list = wifi.getScanResults();
 
                 JSONObject obj = new JSONObject();
@@ -128,10 +91,9 @@ public class GetWifiIntensity extends AppCompatActivity {
 
                     // 20160717 15:38 for debugging purpose.
                     new SendMSGTask().execute(obj);
+                    wifi.startScan();
                     TextView debug = (TextView) findViewById(R.id.debug);
                     debug.setText(obj.toString());
-
-
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -139,19 +101,64 @@ public class GetWifiIntensity extends AppCompatActivity {
             }
 
         }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case 2: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    Button gauge = (Button) findViewById(R.id.gauge);
+                    gauge.setOnClickListener(new View.OnClickListener(){
+                        public void onClick(View v){
+                            //Toast.makeText(GetWifiIntensity.this,"접속중입니다.",Toast.LENGTH_SHORT).show();
+                            wifi.startScan();
+                        }
+                    });
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+    public class ScanTask extends AsyncTask<Integer, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Integer... time) {
+            while (true) {
+                wifi.startScan();
+                try {
+                    Thread.sleep(time[0]);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public class SendMSGTask extends AsyncTask<JSONObject, Void, Void> {
-
         String rawURL;
 
         @Override
         protected Void doInBackground(JSONObject... params) {
-
             rawURL = "http://oortcloud.ddns.net:8080";
             putJSON(params[0]);
-
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            textView_num.setText(Integer.toString(mNumber));
         }
 
         public void putJSON(JSONObject jobj) {
@@ -186,6 +193,8 @@ public class GetWifiIntensity extends AppCompatActivity {
                 Log.i("LogCat", "[SEND]RESPOND : " + contentAsString);
                 os.close();
                 is.close();
+                ++mNumber;
+
             } catch (MalformedURLException e) {
                 Log.i("LogCat", "[SEND]FAILED TO CONNECT by MalformedURLException");
             } catch (IOException e) {
@@ -193,6 +202,5 @@ public class GetWifiIntensity extends AppCompatActivity {
                 Log.i("LogCat", e.toString());
             }
         }
-
     }
 }
